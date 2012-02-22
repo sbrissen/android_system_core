@@ -981,3 +981,46 @@ int ifc_remove_route(const char *ifname, const char*dst, int prefix_length, cons
 {
     return ifc_act_on_route(SIOCDELRT, ifname, dst, prefix_length, gw);
 }
+
+/*
+ * SAMSUNG STUBS
+ */
+void ifc_remove_ipv6_addrconf_routes(void)
+{
+}
+
+void find_proc_if_inet6_entryIPV6(void)
+{
+}
+
+void ifc_remove_ipv6_default_routes(void)
+{
+}
+
+void ifc_init_ip6(void)
+{
+}
+
+void ifc_remove_ipv6_host_routes(void)
+{
+}
+
+void ifc_down_ip6(void)
+{
+}
+
+void ifc_del_addr_ip6(void)
+{
+}
+
+void ifc_set_if_id(void)
+{
+}
+
+void ifc_up_ip6(void)
+{
+}
+
+void ifc_close_ip6(void)
+{
+}
