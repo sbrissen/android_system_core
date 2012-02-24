@@ -8,6 +8,10 @@ LOCAL_SRC_FILES:= \
         ifc_utils.c \
         packet.c
 
+ifeq ($(TARGET_DEVICE), charge)
+        LOCAL_CFLAGS += -DSAMSUNG_STUBS
+endif
+
 LOCAL_SHARED_LIBRARIES := \
         libcutils
 

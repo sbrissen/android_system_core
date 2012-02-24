@@ -191,7 +191,10 @@ int ifc_get_ifindex(const char *name, int *if_indexp)
     return 0;
 }
 
-static int ifc_set_flags(const char *name, unsigned set, unsigned clr)
+#ifndef SAMSUNG_STUBS
+static
+#endif
+int ifc_set_flags(const char *name, unsigned set, unsigned clr)
 {
     struct ifreq ifr;
     ifc_init_ifr(name, &ifr);
@@ -985,6 +988,7 @@ int ifc_remove_route(const char *ifname, const char*dst, int prefix_length, cons
 /*
  * SAMSUNG STUBS
  */
+#ifdef SAMSUNG_STUBS
 void ifc_remove_ipv6_addrconf_routes(void)
 {
 }
@@ -1024,3 +1028,17 @@ void ifc_up_ip6(void)
 void ifc_close_ip6(void)
 {
 }
+
+void ifc_set_flags_ip6(void)
+{
+}
+
+void ifc_add_host_routeipv6(void)
+{
+}
+
+void ifc_set_default_routeipv6(void)
+{
+}
+#endif
+
