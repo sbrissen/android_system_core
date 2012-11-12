@@ -55,7 +55,7 @@ static int ifc_ctl_sock = -1;
 static int ifc_ctl_sock6 = -1;
 void printerr(char *fmt, ...);
 
-#define DBG 0
+#define DBG 1
 #define INET_ADDRLEN 4
 #define INET6_ADDRLEN 16
 
@@ -87,7 +87,9 @@ int ipv4NetmaskToPrefixLength(in_addr_t mask)
 }
 
 static const char *ipaddr_to_string(in_addr_t addr)
+
 {
+    ALOGI("ipaddr_to_string");
     struct in_addr in_addr;
 
     in_addr.s_addr = addr;
@@ -118,6 +120,7 @@ int string_to_ip(const char *string, struct sockaddr_storage *ss) {
 
 int ifc_init(void)
 {
+     ALOGI("ifc_init");
     int ret;
     if (ifc_ctl_sock == -1) {
         ifc_ctl_sock = socket(AF_INET, SOCK_DGRAM, 0);
@@ -133,6 +136,7 @@ int ifc_init(void)
 
 int ifc_init6(void)
 {
+    ALOGI("ifc_init6");
     if (ifc_ctl_sock6 == -1) {
         ifc_ctl_sock6 = socket(AF_INET6, SOCK_DGRAM, 0);
         if (ifc_ctl_sock6 < 0) {
@@ -144,6 +148,7 @@ int ifc_init6(void)
 
 void ifc_close(void)
 {
+    ALOGI("ifc_close");
     if (DBG) printerr("ifc_close");
     if (ifc_ctl_sock != -1) {
         (void)close(ifc_ctl_sock);
@@ -153,6 +158,7 @@ void ifc_close(void)
 
 void ifc_close6(void)
 {
+    ALOGI("ifc_close6");
     if (ifc_ctl_sock6 != -1) {
         (void)close(ifc_ctl_sock6);
         ifc_ctl_sock6 = -1;
@@ -161,6 +167,7 @@ void ifc_close6(void)
 
 static void ifc_init_ifr(const char *name, struct ifreq *ifr)
 {
+    ALOGI("ifc_init_ifr");
     memset(ifr, 0, sizeof(struct ifreq));
     strncpy(ifr->ifr_name, name, IFNAMSIZ);
     ifr->ifr_name[IFNAMSIZ - 1] = 0;
@@ -168,6 +175,7 @@ static void ifc_init_ifr(const char *name, struct ifreq *ifr)
 
 int ifc_get_hwaddr(const char *name, void *ptr)
 {
+    ALOGI("ifc_get_hwaddr");
     int r;
     struct ifreq ifr;
     ifc_init_ifr(name, &ifr);
@@ -181,6 +189,7 @@ int ifc_get_hwaddr(const char *name, void *ptr)
 
 int ifc_get_ifindex(const char *name, int *if_indexp)
 {
+    ALOGI("ifc_get_ifindex");
     int r;
     struct ifreq ifr;
     ifc_init_ifr(name, &ifr);
@@ -197,6 +206,7 @@ static
 #endif
 int ifc_set_flags(const char *name, unsigned set, unsigned clr)
 {
+    ALOGI("ifc_set_flags %d %d %d ", *name, set, clr);
     struct ifreq ifr;
     ifc_init_ifr(name, &ifr);
 
@@ -207,6 +217,7 @@ int ifc_set_flags(const char *name, unsigned set, unsigned clr)
 
 int ifc_up(const char *name)
 {
+    ALOGI("ifc_up");
     int ret = ifc_set_flags(name, IFF_UP, 0);
     if (DBG) printerr("ifc_up(%s) = %d", name, ret);
     return ret;
@@ -214,6 +225,7 @@ int ifc_up(const char *name)
 
 int ifc_down(const char *name)
 {
+    ALOGI("ifc_down");
     int ret = ifc_set_flags(name, 0, IFF_UP);
     if (DBG) printerr("ifc_down(%s) = %d", name, ret);
     return ret;
@@ -221,6 +233,7 @@ int ifc_down(const char *name)
 
 static void init_sockaddr_in(struct sockaddr *sa, in_addr_t addr)
 {
+    ALOGI("init_sockaddr_in");
     struct sockaddr_in *sin = (struct sockaddr_in *) sa;
     sin->sin_family = AF_INET;
     sin->sin_port = 0;
@@ -229,6 +242,7 @@ static void init_sockaddr_in(struct sockaddr *sa, in_addr_t addr)
 
 int ifc_set_addr(const char *name, in_addr_t addr)
 {
+    ALOGI("ifc_set_addr");
     struct ifreq ifr;
     int ret;
 
@@ -990,56 +1004,195 @@ int ifc_remove_route(const char *ifname, const char*dst, int prefix_length, cons
  * SAMSUNG STUBS
  */
 #ifdef SAMSUNG_STUBS
-void ifc_remove_ipv6_addrconf_routes(void)
+int ifc_remove_ipv6_addrconf_routes(const char *ifname, struct in6_addr dst, int prefix_length, struct in6_addr gw)
 {
+  ALOGI("ifc_remove_ipv6_addrconf_routes");
+  return ifc_act_on_ipv6_route(SIOCDELRT, ifname, dst, prefix_length, gw);
 }
 
 void find_proc_if_inet6_entryIPV6(void)
 {
+  ALOGI("find_proc_if_inet6_entryIPV6");
 }
 
-void ifc_remove_ipv6_default_routes(void)
+int ifc_remove_ipv6_default_routes(const char *ifname)
 {
+    ALOGI("ifc_remove_ipv6_default_routes");
+      struct rtentry rt;
+    int result;
+
+    ifc_init();
+    memset(&rt, 0, sizeof(rt));
+    rt.rt_dev = (void *)ifname;
+    rt.rt_flags = RTF_UP|RTF_GATEWAY;
+    init_sockaddr_in(&rt.rt_dst, 0);
+    if ((result = ioctl(ifc_ctl_sock, SIOCDELRT, &rt)) < 0) {
+        ALOGD("failed to remove default route for %s: %s", ifname, strerror(errno));
+    }
+    ifc_close();
+    return result;
 }
 
-void ifc_init_ip6(void)
+int ifc_init_ip6(void)
 {
+    ALOGI("ifc_init_ip6");
+  return ifc_init6();
 }
 
-void ifc_remove_ipv6_host_routes(void)
+int ifc_remove_ipv6_host_routes(const char *name)
 {
+    ALOGI("ifc_remove_ipv6_host_routes");
+      char ifname[64];
+    in_addr_t dest, gway, mask;
+    int flags, refcnt, use, metric, mtu, win, irtt;
+    struct rtentry rt;
+    FILE *fp;
+    struct in_addr addr;
+
+    fp = fopen("/proc/net/route", "r");
+    if (fp == NULL)
+        return -1;
+    /* Skip the header line */
+    if (fscanf(fp, "%*[^\n]\n") < 0) {
+        fclose(fp);
+        return -1;
+    }
+    ifc_init();
+    for (;;) {
+        int nread = fscanf(fp, "%63s%X%X%X%d%d%d%X%d%d%d\n",
+                           ifname, &dest, &gway, &flags, &refcnt, &use, &metric, &mask,
+                           &mtu, &win, &irtt);
+        if (nread != 11) {
+            break;
+        }
+        if ((flags & (RTF_UP|RTF_HOST)) != (RTF_UP|RTF_HOST)
+                || strcmp(ifname, name) != 0) {
+            continue;
+        }
+        memset(&rt, 0, sizeof(rt));
+        rt.rt_dev = (void *)name;
+        init_sockaddr_in(&rt.rt_dst, dest);
+        init_sockaddr_in(&rt.rt_gateway, gway);
+        init_sockaddr_in(&rt.rt_genmask, mask);
+        addr.s_addr = dest;
+        if (ioctl(ifc_ctl_sock, SIOCDELRT, &rt) < 0) {
+            ALOGD("failed to remove route for %s to %s: %s",
+                 ifname, inet_ntoa(addr), strerror(errno));
+        }
+    }
+    fclose(fp);
+    ifc_close_ip6();
+    return 0;
 }
 
-void ifc_down_ip6(void)
+int ifc_down_ip6(const char *name)
 {
+    ALOGI("ifc_down_ip6");
+    int ret = ifc_set_flags_ip6(name, 0, IFF_UP);
+    if (DBG) printerr("ifc_down(%s) = %d", name, ret);
+    return ret;
 }
 
-void ifc_del_addr_ip6(void)
+int ifc_del_addr_ip6(const char *name)
 {
+    ALOGI("ifc_del_addr_ip6");
+      char rawaddrstr[INET6_ADDRSTRLEN], addrstr[INET6_ADDRSTRLEN];
+    unsigned int prefixlen;
+    int lasterror = 0, i, j, ret;
+    char ifname[64];  // Currently, IFNAMSIZ = 16.
+    FILE *f = fopen("/proc/net/if_inet6", "r");
+    if (!f) {
+        return -errno;
+    }
+
+    // Format:
+    // 20010db8000a0001fc446aa4b5b347ed 03 40 00 01    wlan0
+    while (fscanf(f, "%32s %*02x %02x %*02x %*02x %63s\n",
+                  rawaddrstr, &prefixlen, ifname) == 3) {
+        // Is this the interface we're looking for?
+        if (strcmp(name, ifname)) {
+            continue;
+        }
+
+        // Put the colons back into the address.
+        for (i = 0, j = 0; i < 32; i++, j++) {
+            addrstr[j] = rawaddrstr[i];
+            if (i % 4 == 3) {
+                addrstr[++j] = ':';
+            }
+        }
+        addrstr[j - 1] = '\0';
+
+        // Don't delete the link-local address as well, or it will disable IPv6
+        // on the interface.
+        if (strncmp(addrstr, "fe80:", 5) == 0) {
+            continue;
+        }
+
+        ret = ifc_del_address(ifname, addrstr, prefixlen);
+        if (ret) {
+            ALOGE("Deleting address %s/%d on %s: %s", addrstr, prefixlen, ifname,
+                 strerror(-ret));
+            lasterror = ret;
+        }
+    }
+
+    fclose(f);
+    return lasterror;
 }
 
 void ifc_set_if_id(void)
 {
+    ALOGI("ifc_set_if_id");
+  
 }
 
-void ifc_up_ip6(void)
+int ifc_up_ip6(const char *name)
 {
+    ALOGI("ifc_up_ip6");
+      int ret = ifc_set_flags_ip6(name, IFF_UP, 0);
+    if (DBG) printerr("ifc_up(%s) = %d", name, ret);
+    return ret;
 }
 
 void ifc_close_ip6(void)
 {
+    ALOGI("ifc_close_ip6");
+  ifc_close6();
 }
 
-void ifc_set_flags_ip6(void)
+int ifc_set_flags_ip6(const char *name, unsigned set, unsigned clr)
 {
+    ALOGI("ifc_set_flags_ip6: %d %d %d",*name, set, clr);
+      struct ifreq ifr;
+    //ifc_init_ifr(name, &ifr);
+    ALOGI("ifc_set_flags_ip6-1");
+    if(ioctl(ifc_ctl_sock, SIOCGIFFLAGS, &ifr) < 0) return -1;
+    ifr.ifr_flags = (ifr.ifr_flags & (~clr)) | set;
+    ALOGI("ifc_set_flags_ip6-2");
+    return ioctl(ifc_ctl_sock, SIOCSIFFLAGS, &ifr);
 }
 
-void ifc_add_host_routeipv6(void)
+int ifc_add_host_routeipv6(const char *ifname, struct in6_addr dst, int prefix_length, struct in6_addr gw)
 {
+    ALOGI("ifc_add_host_routeipv6");
+    return ifc_act_on_ipv6_route(SIOCADDRT, ifname, dst, prefix_length, gw);
 }
 
-void ifc_set_default_routeipv6(void)
+int ifc_set_default_routeipv6(const char *ifname, in_addr_t gateway)
 {
+    ALOGI("ifc_set_default_routeipv6");
+      struct in_addr addr;
+    int result;
+
+    ifc_init();
+    addr.s_addr = gateway;
+    if ((result = ifc_create_default_route(ifname, gateway)) < 0) {
+        ALOGD("failed to add %s as default route for %s: %s",
+             inet_ntoa(addr), ifname, strerror(errno));
+    }
+    ifc_close();
+    return result;
 }
 #endif
 
