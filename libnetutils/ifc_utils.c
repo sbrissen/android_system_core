@@ -167,7 +167,7 @@ void ifc_close6(void)
 
 static void ifc_init_ifr(const char *name, struct ifreq *ifr)
 {
-    ALOGI("ifc_init_ifr");
+    ALOGI("ifc_init_ifr %s %d", name, ifr);
     memset(ifr, 0, sizeof(struct ifreq));
     strncpy(ifr->ifr_name, name, IFNAMSIZ);
     ifr->ifr_name[IFNAMSIZ - 1] = 0;
@@ -189,15 +189,13 @@ int ifc_get_hwaddr(const char *name, void *ptr)
 
 int ifc_get_ifindex(const char *name, int *if_indexp)
 {
-    ALOGI("ifc_get_ifindex");
     int r;
     struct ifreq ifr;
     ifc_init_ifr(name, &ifr);
-
     r = ioctl(ifc_ctl_sock, SIOCGIFINDEX, &ifr);
-    if(r < 0) return -1;
-
+    // if(r < 0) return -1;
     *if_indexp = ifr.ifr_ifindex;
+    ALOGI("ifc_get_ifindex %s %d", name, ifr.ifr_ifindex);
     return 0;
 }
 
@@ -206,13 +204,14 @@ static
 #endif
 int ifc_set_flags(const char *name, unsigned set, unsigned clr)
 {
-    ALOGI("ifc_set_flags %d %d %d ", *name, set, clr);
+    ALOGI("ifc_set_flags %s %d %d ", name, set, clr);
     struct ifreq ifr;
     ifc_init_ifr(name, &ifr);
-
-    if(ioctl(ifc_ctl_sock, SIOCGIFFLAGS, &ifr) < 0) return -1;
+//    if(ioctl(ifc_ctl_sock, SIOCGIFFLAGS, &ifr) < 0) return -1;
     ifr.ifr_flags = (ifr.ifr_flags & (~clr)) | set;
+    ALOGI("ifc_set_flags3");
     return ioctl(ifc_ctl_sock, SIOCSIFFLAGS, &ifr);
+
 }
 
 int ifc_up(const char *name)
@@ -1150,7 +1149,7 @@ void ifc_set_if_id(void)
 int ifc_up_ip6(const char *name)
 {
     ALOGI("ifc_up_ip6");
-      int ret = ifc_set_flags_ip6(name, IFF_UP, 0);
+      int ret = ifc_set_flags(name, IFF_UP, 0);
     if (DBG) printerr("ifc_up(%s) = %d", name, ret);
     return ret;
 }
@@ -1163,14 +1162,18 @@ void ifc_close_ip6(void)
 
 int ifc_set_flags_ip6(const char *name, unsigned set, unsigned clr)
 {
-    ALOGI("ifc_set_flags_ip6: %d %d %d",*name, set, clr);
-      struct ifreq ifr;
-    //ifc_init_ifr(name, &ifr);
-    ALOGI("ifc_set_flags_ip6-1");
-    if(ioctl(ifc_ctl_sock, SIOCGIFFLAGS, &ifr) < 0) return -1;
-    ifr.ifr_flags = (ifr.ifr_flags & (~clr)) | set;
-    ALOGI("ifc_set_flags_ip6-2");
-    return ioctl(ifc_ctl_sock, SIOCSIFFLAGS, &ifr);
+    ALOGI("ifc_set_flags_ip6 %s %d %d ", name, set, clr);
+    struct in6_ifreq ifr6;
+    ifc_init6();
+    ALOGI("ifc_set_flags_ip62");
+   // if(ioctl(ifc_ctl_sock, SIOCGIFFLAGS, &ifr) < 0) return -1;
+    //ifr6.ifr_flags = (ifr6.ifr_flags & (~clr)) | set;
+    //ALOGI("ifc_set_flags_ip63");
+    int what = ioctl(ifc_ctl_sock, SIOCSIFFLAGS, &ifr6);
+    ALOGI("ifc_set_flags_ip63: %d", what);
+    return 0;
+
+    
 }
 
 int ifc_add_host_routeipv6(const char *ifname, struct in6_addr dst, int prefix_length, struct in6_addr gw)
